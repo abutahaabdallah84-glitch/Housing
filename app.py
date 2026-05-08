@@ -1,35 +1,39 @@
 import streamlit as st
 import pandas as pd
-from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 
-# تحميل البيانات
-df = pd.read_csv("Housing.csv")
+st.title("🏠 House Price Prediction")
 
-# تحويل النصوص إلى أرقام
-df = pd.get_dummies(df, drop_first=True)
+@st.cache_data
+def load_data():
+    return pd.read_csv("Housing.csv")
 
-# تقسيم البيانات
-X = df.drop("price", axis=1)
-y = df["price"]
+@st.cache_resource
+def train_model(df):
+    df = pd.get_dummies(df, drop_first=True)
+    X = df.drop("price", axis=1)
+    y = df["price"]
 
-model = LinearRegression()
-model.fit(X, y)
+    model = LinearRegression()
+    model.fit(X, y)
 
-# عنوان التطبيق
-st.title("🏠 توقع سعر المنزل")
+    return model, X.columns
 
-st.write("أدخل بيانات المنزل:")
+# تحميل البيانات مرة واحدة فقط
+df = load_data()
 
-# إنشاء حقول الإدخال
+# تدريب مرة واحدة فقط
+model, columns = train_model(df)
+
+st.write("Enter house data:")
+
 input_data = {}
+for col in columns:
+    input_data[col] = st.number_input(col, value=0.0)
 
-for col in X.columns:
-    input_data[col] = st.number_input(f"{col}", value=0.0)
-
-# زر التنبؤ
-if st.button("Predict Price"):
+if st.button("Predict"):
     input_df = pd.DataFrame([input_data])
+    input_df = input_df.reindex(columns=columns, fill_value=0)
+
     prediction = model.predict(input_df)
-    
-    st.success(f"💰 السعر المتوقع: {prediction[0]:,.0f}")
+    st.success(f"Price: {prediction[0]:,.0f}")
